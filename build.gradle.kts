@@ -1,10 +1,18 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.konan.properties.Properties
+import java.io.FileInputStream
 
 plugins {
     kotlin("multiplatform") version "1.5.30" apply false
     id("base")
+}
+
+val keystorePropertiesFile = rootProject.file("mymavenrepo.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.canRead()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 buildscript {
@@ -52,7 +60,9 @@ subprojects {
     }
 
     tasks.withType<Sign>().configureEach {
-        onlyIf { !project.gradle.startParameter.taskNames.contains("publishToMavenLocal") }
+        //STOPSHIP(akashkhunt): 28/09/21 Remove below hard-coded false and uncomment the "publishToMavenLocal" check
+        onlyIf { false }
+//        onlyIf { !project.gradle.startParameter.taskNames.contains("publishToMavenLocal") }
     }
 
     tasks.whenTaskAdded {
@@ -218,10 +228,10 @@ subprojects {
 
         repositories {
             maven {
-                url = uri("https://oss.sonatype.org/service/local/staging/deploy/maven2")
+                url = uri(keystoreProperties["write_url"]!!)
                 credentials {
-                    username = project.findProperty("sonatypeUsername") as String? ?: System.getenv("sonatypeUsername")
-                    password = project.findProperty("sonatypePassword") as String? ?: System.getenv("sonatypePassword")
+                    username = keystoreProperties["username"] as String?
+                    password = keystoreProperties["write_password"] as String?
                 }
             }
         }
