@@ -15,6 +15,7 @@ import dev.gitlive.firebase.app
 import kotlinx.coroutines.CompletableDeferred
 import platform.Foundation.NSError
 import platform.Foundation.timeIntervalSince1970
+import kotlin.native.concurrent.freeze
 
 actual val Firebase.remoteConfig: FirebaseRemoteConfig
     get() = FirebaseRemoteConfig(FIRRemoteConfig.remoteConfig())
@@ -114,13 +115,19 @@ private suspend inline fun <T, reified R> T.awaitResult(
     function: T.(callback: (R?, NSError?) -> Unit) -> Unit
 ): R {
     val job = CompletableDeferred<R?>()
-    function { result, error ->
+    job.freeze()
+
+    val completionHandler: (R?, NSError?) -> Unit = { result: R?, error: NSError? ->
         if (error == null) {
             job.complete(result)
         } else {
             job.completeExceptionally(error.toException())
         }
     }
+    completionHandler.freeze()
+
+    function(completionHandler)
+
     return job.await() as R
 }
 
