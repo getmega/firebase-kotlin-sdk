@@ -15,7 +15,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import platform.Foundation.*
-
+import kotlin.native.concurrent.freeze
 
 actual val Firebase.auth
     get() = FirebaseAuth(FIRAuth.auth())
@@ -29,7 +29,12 @@ actual class FirebaseAuth internal constructor(val ios: FIRAuth) {
         get() = ios.currentUser?.let { FirebaseUser(it) }
 
     actual val authStateChanged get() = callbackFlow<FirebaseUser?> {
-        val handle = ios.addAuthStateDidChangeListener { _, user -> safeOffer(user?.let { FirebaseUser(it) }) }
+        val authStateChangeListener: (FIRAuth?, FIRUser?) -> Unit = { _: FIRAuth?, user: FIRUser? ->
+            safeOffer(user?.let { FirebaseUser(it) })
+        }
+        authStateChangeListener.freeze()
+
+        val handle = ios.addAuthStateDidChangeListener(authStateChangeListener)
         awaitClose { ios.removeAuthStateDidChangeListener(handle) }
     }
 
