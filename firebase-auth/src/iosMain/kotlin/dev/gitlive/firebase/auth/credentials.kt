@@ -74,7 +74,7 @@ actual class PhoneAuthProvider(val ios: FIRPhoneAuthProvider) {
 }
 
 actual interface PhoneVerificationProvider {
-    val delegate: FIRAuthUIDelegateProtocol
+    val delegate: FIRAuthUIDelegateProtocol?
     suspend fun getVerificationCode(): String
 }
 
