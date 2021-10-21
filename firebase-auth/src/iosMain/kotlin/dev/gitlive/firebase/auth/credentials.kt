@@ -68,6 +68,7 @@ actual class PhoneAuthProvider(val ios: FIRPhoneAuthProvider) {
 
     actual suspend fun verifyPhoneNumber(phoneNumber: String, verificationProvider: PhoneVerificationProvider): AuthCredential {
         val verificationId: String = ios.awaitResult { ios.verifyPhoneNumber(phoneNumber, verificationProvider.delegate, it) }
+        verificationProvider.onCodeSent(verificationId)
         val verificationCode = verificationProvider.getVerificationCode()
         return credential(verificationId, verificationCode)
     }
@@ -76,6 +77,7 @@ actual class PhoneAuthProvider(val ios: FIRPhoneAuthProvider) {
 actual interface PhoneVerificationProvider {
     val delegate: FIRAuthUIDelegateProtocol?
     suspend fun getVerificationCode(): String
+    fun onCodeSent(verificationId: String)
 }
 
 actual object TwitterAuthProvider {
