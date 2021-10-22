@@ -150,13 +150,19 @@ internal fun <T, R> T.throwError(block: T.(errorPointer: CPointer<ObjCObjectVar<
 
 internal suspend inline fun <T, reified R> T.awaitResult(function: T.(callback: (R?, NSError?) -> Unit) -> Unit): R {
     val job = CompletableDeferred<R?>()
-    function { result, error ->
-        if(error == null) {
+    job.freeze()
+
+    val completionHandler: (R?, NSError?) -> Unit = { result: R?, error: NSError? ->
+        if (error == null) {
             job.complete(result)
         } else {
             job.completeExceptionally(error.toException())
         }
     }
+    completionHandler.freeze()
+
+    function(completionHandler)
+
     return job.await() as R
 }
 
